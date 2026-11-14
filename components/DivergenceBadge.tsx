@@ -1,0 +1,1 @@
+export default function DivergenceBadge() { return <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-400"><span aria-hidden="true">◇</span>Model comparison pending</div>; }

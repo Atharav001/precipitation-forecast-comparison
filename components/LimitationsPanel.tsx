@@ -1,0 +1,1 @@
+export default function LimitationsPanel() { return <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400"><h2 className="font-semibold text-slate-200">About this forecast</h2><p className="mt-2">Model details and limitations will appear here.</p></div>; }
