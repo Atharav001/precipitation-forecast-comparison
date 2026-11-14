@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "RainScope | Precipitation forecast comparison",
+  title: "PreciCast | Precipitation forecast comparison",
   description: "Compare precipitation forecasts from two weather models.",
 };
 
