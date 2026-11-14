@@ -3,7 +3,7 @@
 **Audit date:** 14 November 2026 (Asia/Kolkata)  
 **Repository:** [Atharav001/precipitation-forecast-comparison](https://github.com/Atharav001/precipitation-forecast-comparison)  
 **Deployment:** [precipitation-forecast.vercel.app](https://precipitation-forecast.vercel.app/)  
-**Scope:** source review, data-contract checks, five-city live-provider validation, automated tests, production build, local production HTTP checks, and in-app browser review before the final push.
+**Scope:** source review, data-contract checks, five-city live-provider validation, automated tests, production build, local production HTTP checks, in-app browser review before the final push, and post-push public HTTP checks.
 
 ## Executive assessment
 
@@ -26,6 +26,7 @@ The application implements the planned city search, IFS/AIFS comparison, diverge
 | Cache | Ensemble fetch uses one-hour `next.revalidate`; archive fetch uses 30 days. [Next.js fetch documentation](https://nextjs.org/docs/15/app/api-reference/functions/fetch) describes this as persistent Data Cache behavior. | Implemented | Vercel production cache hit/miss and expiration telemetry were not inspected. |
 | Security and dependencies | Next.js upgraded from 14.2.35 to 15.5.29; PostCSS pinned to patched 8.5.23 or newer. `npm audit` reported zero known vulnerabilities. | Pass at audit time | Dependency advisories can change. |
 | Build and tests | `npm test`: 7/7 pass. `npm run check`: pass. `npm run build`: pass. Local production server returned HTTP 200 for London, Bengaluru, and a readable invalid-coordinate case. | Pass | Browser checks of the final deployed commit remain a separate release gate. |
+| Post-push deployment | The public Vercel URL returned HTTP 200 for all five cities, with historical and ensemble sections present; invalid coordinates returned a readable error. | Server-rendered paths pass | A post-push visual mobile and client-side map check could not be run after the in-app browser tool became unavailable. |
 
 ## Five-city provider sample
 
@@ -47,10 +48,10 @@ The 2026 Zhang and Engelke study evaluated record-breaking heat, cold, and wind 
 
 ## Release gates and remaining work
 
-1. Confirm the final GitHub commit appears in Vercel's deployment details, then recheck the live city search, forecast, charts, map, and mobile layout. The in-app browser review above was on the local pre-push build; the supplied live URL was checked before these changes.
+1. Complete a post-push in-app browser check of live city search, chart rendering, map tiles, and mobile layout. Public HTTP checks confirm the new server-rendered content, but they do not execute client JavaScript or inspect the mobile viewport. The in-app browser review above was on the local pre-push build.
 2. Run a precipitation backtest using archived **IFS and AIFS forecasts** paired with independent gauge observations (or clearly labelled reanalysis as a weaker proxy). Compare each model, the fixed blend, and a simple equal-weight baseline by location, lead time, season, and heavy-rain event threshold.
 3. Calibrate or redesign divergence and severity thresholds based on that evaluation. In particular, inspect false alerts when local P90 is zero and validate the “Severe Outlier” label across climates.
 4. Replace the static same-day snapshot with a maintained, dated fallback if sustained outage resilience is required. Keep freshness explicit and never present an old forecast as current.
 5. Add production monitoring for Open-Meteo failures, latency, missing values, cache effectiveness, and map tile failures if the app will be operated beyond a demo.
 
-**Conclusion:** The implemented functions and tested routes work for the checked cases. This audit does not certify prediction accuracy, all possible upstream responses, or the final live deployment until the post-push release gate is completed.
+**Conclusion:** The implemented functions, tested routes, and five public server-rendered city pages work for the checked cases. This audit does not certify prediction accuracy, all possible upstream responses, or final live client-side behavior until the remaining browser release gate is completed.
