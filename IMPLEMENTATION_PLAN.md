@@ -1,6 +1,6 @@
 ## Current Build Status
 
-Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, and Vercel KV caching described below were part of the original design and were not implemented in this build.
+Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, Vercel KV caching, and cached fallback data described below were part of the original design and were not implemented in this build.
 
 # IMPLEMENTATION PLAN — Precipitation Forecast Comparison App
 
@@ -34,7 +34,7 @@ These exist because an earlier design review caught real mistakes. Do not reintr
 
 1. **NEVER claim the cited study established a rainfall bias for AIFS.** The 2026 Zhang and Engelke study evaluated GraphCast, Pangu-Weather, and Fuxi for record-breaking heat, cold, and wind. It evaluated neither AIFS nor precipitation. Every piece of UI copy, every code comment, and every README sentence that references this must use the exact framing in Section 7.
 2. **NEVER label the P90 threshold tier "record-breaking."** That term is reserved only for the Severe Outlier tier (near/above the city's historical max). P90 is common — it happens several times a year. Calling it record-breaking is a factual overclaim. Use "Locally Unusual" for that tier, always.
-3. **NEVER merge IFS and AIFS ensemble members into one combined chart series.** They use different perturbation schemes and are not paired. Render as two visually distinct, separately-labeled bands. The single "consensus" number is derived from the two **means**, never from mixing raw ensemble members together.
+3. **NEVER merge IFS and AIFS ensemble members into one combined chart series.** They use different perturbation schemes and are not paired. The original design called for two visually distinct, separately-labeled bands. Its proposed single "consensus" number would have been derived from the two **means**, never from mixing raw ensemble members together; neither feature was implemented.
 4. **NEVER rely on an in-memory JavaScript object, Map, or array as a cache for climatology data.** Vercel serverless functions are stateless between invocations — an in-memory cache will silently fail to persist and you will re-run expensive queries every request without realizing it. Use the Vercel KV client as specified in Section 5.4. If Vercel KV is not available in this environment, fall back to writing a JSON file to `/public/cache/` at build time for the demo cities only — do not silently skip caching.
 5. **NEVER guess an Open-Meteo API parameter name.** Before writing `lib/openMeteo.ts`, fetch the real documentation pages listed in Section 4 and copy the exact parameter names and URL structure from what you actually see there, not from this document's best-guess examples (marked clearly below).
 6. **NEVER ship a feature with no loading state or no error state.** Every async data fetch (forecast, ensemble, climatology, geocoding) must have a visible loading state and a visible, user-readable error state. A blank screen or an unhandled promise rejection on API failure is treated as a bug, not a minor issue.
@@ -128,8 +128,8 @@ Commit immediately after scaffold succeeds and runs locally.
 ```
 
 ### 5.3 Data layer first (build and verify before any UI)
-1. `lib/openMeteo.ts`: three exported functions — `geocodeCity(name)`, `getPointForecast(lat, lon)`, `getEnsembleMean(lat, lon)`. Each returns typed data or throws a typed error (`WeatherApiError`). These are plain async functions — they are never called via `fetch()` to your own domain, only imported and awaited directly wherever they're needed.
-2. `lib/climatology.ts`: one exported function, `getClimatology(lat, lon, dayOfYear)`, which computes the `dayOfYearBucket` (see ARCHITECTURE.md Section 3), checks Vercel KV for that bucket key, and on a miss queries the Open-Meteo archive for the pooled ±10-day-window, multi-year sample, computes P90 and max, writes it to KV, and returns `{ p90Mm, maxMm }`.
+1. `lib/openMeteo.ts`: the original design called for three exported functions — `geocodeCity(name)`, `getPointForecast(lat, lon)`, `getEnsembleMean(lat, lon)`. The first two were implemented; `getEnsembleMean` was not. The proposed functions would return typed data or throw a typed error (`WeatherApiError`) and be imported directly rather than called via `fetch()` to your own domain.
+2. `lib/climatology.ts`: the original design called for `getClimatology(lat, lon, dayOfYear)` to compute the `dayOfYearBucket` (see ARCHITECTURE.md Section 3), check Vercel KV for that bucket key, and on a miss query the Open-Meteo archive for the pooled ±10-day-window, multi-year sample, compute P90 and max, write it to KV, and return `{ p90Mm, maxMm }`. This module was not implemented.
 3. Test each function independently from a temporary scratch script (e.g. `tsx scripts/test-data-layer.ts`) before wiring to UI — do not create throwaway API routes just to test these, since no route handlers exist for them in this build. Print real returned values to console. Confirm units (precipitation in mm), confirm both model values differ from each other for at least one test city, and confirm the climatology P90/max values look sane (a coastal monsoon city's P90 should be visibly higher than a desert city's).
 4. Only proceed to UI once all functions return verified real data.
 
@@ -161,7 +161,7 @@ Before Day 3, manually fetch and save real responses for 3–4 cities (one monso
 
 ## 6. The Hybrid Consensus Algorithm — exact specification
 
-This is a pure function. Inputs and outputs are fully typed. Do not add randomness, do not add machine learning here — this is deliberately a deterministic, auditable rule.
+The original design called for a pure function with fully typed inputs and outputs, but it was not implemented. Do not add randomness or machine learning here — the proposed rule was deliberately deterministic and auditable.
 
 ```typescript
 type Tier = "ROUTINE" | "LOCALLY_UNUSUAL" | "SEVERE_OUTLIER";
@@ -225,7 +225,7 @@ function computeConsensus(input: ConsensusInput): ConsensusOutput {
 
 **Severe Outlier tier (original design, not implemented; copy requires validation before use):** "Severe Outlier: this forecast approaches or exceeds this location's historical maximum in the selected dataset. This does not establish which model is more accurate or provide a lower bound for rainfall."
 
-**Model limitations panel (use this exact framing — do not strengthen or weaken the claim):** "This app compares ECMWF's physics-based IFS model with ECMWF's AI-based AIFS model. AIFS shares its underlying approach — a graph neural network trained on historical reanalysis data — with other AI weather models (GraphCast, Pangu-Weather, Fuxi). A 2026 study (Zhang & Engelke, Science Advances) found these models underestimate the frequency and intensity of record-breaking heat, cold, and wind extremes — the study did not evaluate precipitation or AIFS directly. We show model disagreement here as a signal worth your attention, not as a validated claim about which model is more accurate for rainfall specifically."
+**Model limitations panel (use this exact framing — do not strengthen or weaken the claim):** "This app compares ECMWF's physics-based IFS model with ECMWF's AI-based AIFS model. AIFS and the AI weather models in the cited study (GraphCast, Pangu-Weather, FuXi) are all data-driven, but they use different neural network designs — AIFS and GraphCast use graph neural network components, while Pangu-Weather and FuXi use transformer architectures. A 2026 study (Zhang & Engelke, Science Advances) found these AI models underestimate the frequency and intensity of record-breaking heat, cold, and wind extremes. That study did not evaluate precipitation or AIFS directly. We show model disagreement here as a signal worth attention, not as a validated accuracy claim."
 
 **Divergence badge:** "Models disagree by {X}mm for this forecast."
 

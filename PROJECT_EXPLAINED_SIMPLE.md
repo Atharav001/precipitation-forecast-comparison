@@ -1,6 +1,6 @@
 ## Current Build Status
 
-Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, and Vercel KV caching described below were part of the original design and were not implemented in this build.
+Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, Vercel KV caching, and cached fallback data described below were part of the original design and were not implemented in this build.
 
 # What We're Actually Building — Plain Language Version
 
@@ -10,7 +10,7 @@ Due to time constraints, the current build includes city geocoding, a seven-day 
 
 ## The one-sentence version
 
-We're building a weather app that shows two different rain forecasts side by side instead of one — a traditional physics-based one and a newer AI-based one — and when they disagree, or when the forecast looks unusually extreme for that place, the app tells you so clearly instead of hiding it.
+We built a weather app that shows two different rain forecasts side by side instead of one — a traditional physics-based one and a newer AI-based one — and flags when they disagree. The original design also called for a local historical severity warning, but that was not implemented.
 
 ---
 
@@ -26,11 +26,11 @@ Every weather app you've ever used hides this. They just show you one number and
 
 1. **You type in a city.**
 2. **The app asks two different weather models for a rain forecast**: one called IFS (the traditional, physics-simulation kind, used by ECMWF — the main European weather agency) and one called AIFS (ECMWF's own newer AI model).
-3. **It shows you both numbers.** If they're close, great, you see one clean, agreed-on forecast.
+3. **It shows you both numbers.** If they're close, you can see that the models broadly agree.
 4. **If they disagree by a meaningful amount**, the app flags it — "these two models disagree by X mm" — instead of silently averaging them and hoping you don't notice.
-5. **It also checks history.** The app looks up that exact city's own rainfall history for the past ~10 years. If today's forecast is unusually high compared to that city's own normal range, it says so — "this is Locally Unusual for this place" (happens a few times a year) or, if it's really extreme, "Severe Outlier" (approaching or beyond anything in that city's recent record).
+5. **The design called for a historical check, but it was not implemented.** The planned app would have looked up that exact city's own rainfall history for the past ~10 years. If a forecast were unusually high compared to that city's own normal range, it would have said so — "this is Locally Unusual for this place" (happens a few times a year) or, if it were really extreme, "Severe Outlier" (approaching or beyond anything in that city's recent record).
 6. **The original design proposed a Severe Outlier tier**, but this was not built. A rainfall forecast must not be treated as a lower bound based on the cited study.
-7. **There's also an uncertainty band** — instead of one single line on a chart, you see a shaded range showing how much the forecast could vary, which is a more honest way to show a forecast than a single confident-looking number.
+7. **The design also called for an uncertainty band, but it was not implemented** — instead of one single line on a chart, it would have shown a shaded range showing how much the forecast could vary, which would be a more honest way to show a forecast than a single confident-looking number.
 
 ---
 
@@ -45,7 +45,7 @@ The original design proposed a weighted consensus forecast, but it was not imple
 Two important nuances, so you don't accidentally overclaim in an interview or write-up:
 
 1. The research paper tested GraphCast, Pangu-Weather, and Fuxi on heat, cold, and wind records. It tested **neither AIFS nor precipitation**. The app's disagreement badge shows a difference between forecasts, not proof that one rainfall model is more accurate. Say it that way if asked.
-2. "Unusual" and "record-breaking" are not the same thing. Something can be unusual for a city (happens a few times a year) without being anywhere close to that city's actual historical record. We built two separate tiers so we're not crying wolf — Locally Unusual for "notably high," Severe Outlier reserved for genuinely rare events near or beyond the historical max.
+2. "Unusual" and "record-breaking" are not the same thing. Something can be unusual for a city (happens a few times a year) without being anywhere close to that city's actual historical record. The original design called for two separate tiers, but they were not implemented — Locally Unusual for "notably high," Severe Outlier reserved for genuinely rare events near or beyond the historical max.
 
 ---
 
