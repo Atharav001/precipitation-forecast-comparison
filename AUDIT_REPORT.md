@@ -35,7 +35,7 @@ The implemented comparison, geocoding, historical context, ensemble ranges, map 
 | Errors and fallback | Invalid coordinates and malformed responses become readable errors. Ensemble/history failures become isolated notices. A fixed snapshot is accepted only on its first forecast date. | **Tested paths pass; resilience limited** | The checked-in snapshot is dated 14 November 2026 and expires after that local day. A forced production outage was not exercised. |
 | Cache and performance | Ensemble fetch revalidates after one hour; archive fetch after 30 days. Point forecast and geocoding fetch fresh. Dynamic forecast route built successfully. | **Implemented** | No production cache, latency, rate-limit, or failure telemetry was available. |
 | Security and dependencies | TypeScript check and production build pass. `npm audit --json` found zero known vulnerabilities on 14 November 2026. Coordinate input is range-checked; React renders location labels as text. | **Pass for checked scope** | Advisory status changes; this is not a penetration test. |
-| Deployment | Previous public HTTP checks returned 200 for five city pages and readable invalid-coordinate output. A fresh post-push check is recorded below. | **Server output check** | No final deployed client/mobile visual pass while the in-app browser tool is unavailable. |
+| Deployment | Vercel marked commit `678ea8d` successful. Fresh public HTTP checks returned 200 for five city pages, showed the selected London region/country, and rendered a readable invalid-coordinate error. | **Server output pass** | No final deployed client/mobile visual pass while the in-app browser tool is unavailable. |
 
 ## Archived rainfall comparison
 
@@ -61,6 +61,20 @@ Overall RMSE was 11.025 mm (IFS), 10.572 (AIFS), 10.744 (equal), and 10.769 (app
 | `node --import tsx scripts/validate-live.ts` | Five cities passed; seven daily values and 50+50 first-day ensemble members each; zero missing point values in this sample. |
 | `python3 scripts/backtest.py` | 120 paired city-days; zero skips; results saved in `scripts/backtest-results.json`. |
 | `npm audit --json` | Zero known vulnerabilities at check time. |
+
+### Post-push public-to-provider check
+
+After Vercel marked commit `678ea8d` successful, the public pages and direct Open-Meteo forecast endpoint were queried at the same coordinates. The displayed seven-day totals matched the direct API sums to one decimal place in all five cases:
+
+| City | IFS direct / site (mm) | AIFS direct / site (mm) | Public HTTP |
+|---|---:|---:|---:|
+| Bengaluru | 0.0 / 0.0 | 3.1 / 3.1 | 200 |
+| Mumbai | 0.0 / 0.0 | 0.0 / 0.0 | 200 |
+| Jaisalmer | 1.4 / 1.4 | 2.4 / 2.4 | 200 |
+| Shimla | 0.6 / 0.6 | 1.7 / 1.7 | 200 |
+| London | 21.3 / 21.3 | 21.8 / 21.8 | 200 |
+
+The public London page also rendered “England, United Kingdom” when those selection parameters were supplied. The invalid-coordinate route returned HTTP 200 with “Invalid latitude or longitude.” This verifies readable UI output; using HTTP 200 for an invalid forecast route is a semantic status-code weakness if clients need to distinguish errors programmatically.
 
 ## Remaining gates, ranked
 
