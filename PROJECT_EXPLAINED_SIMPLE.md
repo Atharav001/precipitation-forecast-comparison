@@ -16,7 +16,7 @@ We're building a weather app that shows two different rain forecasts side by sid
 
 ## Why this is actually interesting, not just "another weather app"
 
-Here's the thing most people don't know: in the last few years, AI models got really good at weather forecasting — sometimes beating the old physics-based methods. But a 2026 research paper found something important: AI weather models are good at normal, everyday forecasts, but they get noticeably worse exactly when it matters most — during record-breaking, extreme events (massive heatwaves, huge storms, record rainfall). The AI models basically learned from history, so when something happens that's worse than anything in their training data, they struggle to imagine it.
+In recent years, AI models have become competitive at weather forecasting. A 2026 study found that several AI models performed worse than a physics-based model on record-breaking heat, cold, and wind. The study did not test precipitation or AIFS, so it does not tell us which of the two models in this app will be more accurate for rainfall.
 
 Every weather app you've ever used hides this. They just show you one number and expect you to trust it. We're building the app that doesn't do that.
 
@@ -29,14 +29,14 @@ Every weather app you've ever used hides this. They just show you one number and
 3. **It shows you both numbers.** If they're close, great, you see one clean, agreed-on forecast.
 4. **If they disagree by a meaningful amount**, the app flags it — "these two models disagree by X mm" — instead of silently averaging them and hoping you don't notice.
 5. **It also checks history.** The app looks up that exact city's own rainfall history for the past ~10 years. If today's forecast is unusually high compared to that city's own normal range, it says so — "this is Locally Unusual for this place" (happens a few times a year) or, if it's really extreme, "Severe Outlier" (approaching or beyond anything in that city's recent record).
-6. **When it flags a Severe Outlier, it reminds you of the research finding**: AI models tend to underestimate exactly these rare, severe events — so treat the number as a floor, not a ceiling.
+6. **The original design proposed a Severe Outlier tier**, but this was not built. A rainfall forecast must not be treated as a lower bound based on the cited study.
 7. **There's also an uncertainty band** — instead of one single line on a chart, you see a shaded range showing how much the forecast could vary, which is a more honest way to show a forecast than a single confident-looking number.
 
 ---
 
 ## The one clever trick in the middle: "Consensus Forecast"
 
-Instead of just showing two raw numbers and leaving you to figure out which to trust, we also compute one blended "best guess" number. But — and this is the part worth understanding deeply — we don't blend them 50/50 always. We lean more on the physics model (IFS) when the forecast looks extreme, and lean more on the AI model (AIFS) when it looks like a normal day. Why? Because that's literally what the research says: AI is fine (sometimes better) on normal days, and physics is more trustworthy on extreme days. We're not training any new AI to do this — we wrote simple, clear rules that apply that research finding directly. That's the whole "hybrid" idea: not a smarter model, just smarter rules about which existing model to trust more, and when.
+The original design proposed a weighted consensus forecast, but it was not implemented. The proposed weights were a heuristic, not a result validated for rainfall. Before adding a blended number, we would need to compare it with both individual models on past forecasts and observed or clearly labelled reanalysis rainfall.
 
 ---
 
@@ -44,7 +44,7 @@ Instead of just showing two raw numbers and leaving you to figure out which to t
 
 Two important nuances, so you don't accidentally overclaim in an interview or write-up:
 
-1. The research paper that found "AI models underpredict extreme events" tested specific models — GraphCast, Pangu-Weather, Fuxi. It did **not** test AIFS, the model we actually use. AIFS is built the same general way (same kind of AI architecture, trained similarly), so it's reasonable to apply the same caution to it — but it's an educated extension of the research, not a proven fact about AIFS itself. Say it that way if asked.
+1. The research paper tested GraphCast, Pangu-Weather, and Fuxi on heat, cold, and wind records. It tested **neither AIFS nor precipitation**. The app's disagreement badge shows a difference between forecasts, not proof that one rainfall model is more accurate. Say it that way if asked.
 2. "Unusual" and "record-breaking" are not the same thing. Something can be unusual for a city (happens a few times a year) without being anywhere close to that city's actual historical record. We built two separate tiers so we're not crying wolf — Locally Unusual for "notably high," Severe Outlier reserved for genuinely rare events near or beyond the historical max.
 
 ---

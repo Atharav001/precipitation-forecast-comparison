@@ -17,7 +17,7 @@ Every mainstream consumer weather app either shows one blended number (hiding di
 
 ## 3. Why these exact consensus weight numbers (0.8/0.2, 0.65/0.35, 0.4/0.6) **(correction)**
 
-An earlier version of this plan implied these weights were empirically derived from the research. They are not — they are a **deliberately simple, explainable heuristic** inspired by one real finding (AI models underperform physics models specifically on extreme/record-breaking events; physics and AI are roughly comparable on routine forecasts, with AI sometimes ahead). The weights are round numbers chosen so the logic is auditable and explainable in one sentence, not numbers tuned against any dataset. Do not present this as "AI-calibrated weighting" in any write-up — it is a rule-based heuristic, stated as such.
+An earlier version of this plan implied these weights were empirically derived from the research. They are not. The cited study evaluated heat, cold, and wind, not precipitation or AIFS. These weights are an unvalidated rainfall heuristic and were not implemented. Any future consensus forecast needs a precipitation backtest against the individual models before accuracy claims can be made.
 
 ## 4. Why "Locally Unusual" and "Severe Outlier," not "record-breaking" for both tiers **(correction)**
 
@@ -25,7 +25,7 @@ The original draft used "record-breaking" for any forecast above the 90th percen
 
 ## 5. Why AIFS is discussed with explicit hedging, not stated as "proven to underpredict extremes" **(correction)**
 
-The tested models in the key cited research (GraphCast, Pangu-Weather, Fuxi) are not AIFS. AIFS shares the general approach (graph neural network trained on reanalysis data) but was not itself in that study's test set. The approved copy text in `IMPLEMENTATION_PLAN.md` Section 7 is deliberately worded to say "shares its underlying approach" and "we apply the same caution here" rather than stating AIFS was directly tested. This distinction is exactly the kind of thing a domain-expert reviewer would catch, and getting it right is a stronger signal of judgment than a bolder, less accurate claim would be.
+The cited study tested GraphCast, Pangu-Weather, and Fuxi on heat, cold, and wind extremes. It evaluated neither AIFS nor precipitation. The approved copy in `IMPLEMENTATION_PLAN.md` Section 7 states both limits and presents model disagreement as a signal for inspection, without claiming that either model is more accurate for rainfall.
 
 ## 6. Why two separate ensemble bands, never merged **(correction)**
 

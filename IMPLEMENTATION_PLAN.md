@@ -24,7 +24,7 @@ Then paste this entire plan as context before any coding begins.
 
 ## 1. What this app does (one paragraph, memorize this)
 
-The app lets a user search any city and see a precipitation forecast built from **two different weather models** — ECMWF's physics-based IFS model and ECMWF's AI-based AIFS model — shown side by side, with three honest additions no mainstream consumer weather app does: (a) a **Divergence Badge** when the two models disagree meaningfully, (b) a **Consensus Forecast** that is computed by a rule-based algorithm which leans on the physics model more as rainfall gets more unusual, because research shows AI models are weaker at extremes, and (c) a **Locally Unusual / Severe Outlier severity tier** computed from that city's own 10-year rainfall history, not a generic global threshold.
+The original design proposed showing ECMWF's physics-based IFS and AI-based AIFS precipitation forecasts side by side, with a **Divergence Badge**, a rule-based **Consensus Forecast**, and local historical severity tiers. Only the model comparison and divergence badge are implemented. The proposed consensus weighting has not been validated for precipitation.
 
 ---
 
@@ -32,7 +32,7 @@ The app lets a user search any city and see a precipitation forecast built from 
 
 These exist because an earlier design review caught real mistakes. Do not reintroduce them:
 
-1. **NEVER claim AIFS itself was proven to underpredict extremes.** The research (Zhang & Engelke, *Science Advances*, 2026) tested GraphCast, Pangu-Weather, and Fuxi — **not AIFS**. AIFS is architecturally similar (graph neural network, trained on ECMWF reanalysis) but was not the tested model. Every piece of UI copy, every code comment, and every README sentence that references this must use the exact phrasing given in Section 7 ("Approved copy text"). Do not paraphrase this claim into something stronger.
+1. **NEVER claim the cited study established a rainfall bias for AIFS.** The 2026 Zhang and Engelke study evaluated GraphCast, Pangu-Weather, and Fuxi for record-breaking heat, cold, and wind. It evaluated neither AIFS nor precipitation. Every piece of UI copy, every code comment, and every README sentence that references this must use the exact framing in Section 7.
 2. **NEVER label the P90 threshold tier "record-breaking."** That term is reserved only for the Severe Outlier tier (near/above the city's historical max). P90 is common — it happens several times a year. Calling it record-breaking is a factual overclaim. Use "Locally Unusual" for that tier, always.
 3. **NEVER merge IFS and AIFS ensemble members into one combined chart series.** They use different perturbation schemes and are not paired. Render as two visually distinct, separately-labeled bands. The single "consensus" number is derived from the two **means**, never from mixing raw ensemble members together.
 4. **NEVER rely on an in-memory JavaScript object, Map, or array as a cache for climatology data.** Vercel serverless functions are stateless between invocations — an in-memory cache will silently fail to persist and you will re-run expensive queries every request without realizing it. Use the Vercel KV client as specified in Section 5.4. If Vercel KV is not available in this environment, fall back to writing a JSON file to `/public/cache/` at build time for the demo cities only — do not silently skip caching.
@@ -223,9 +223,9 @@ function computeConsensus(input: ConsensusInput): ConsensusOutput {
 
 **Locally Unusual tier:** "Locally Unusual: this forecast is above the 90th percentile of this location's recent rainfall history. This is a notable but not unprecedented amount."
 
-**Severe Outlier tier:** "Severe Outlier: this forecast approaches or exceeds this location's historical maximum. AI-based forecasts are known to underestimate how often and how intensely these rare, severe events occur — treat this number as a conservative lower bound, not an upper limit."
+**Severe Outlier tier (original design, not implemented; copy requires validation before use):** "Severe Outlier: this forecast approaches or exceeds this location's historical maximum in the selected dataset. This does not establish which model is more accurate or provide a lower bound for rainfall."
 
-**Model limitations panel (use this exact framing — do not strengthen or weaken the claim):** "This app compares ECMWF's physics-based IFS model with ECMWF's AI-based AIFS model. AIFS shares its underlying approach — a graph neural network trained on historical reanalysis data — with other AI weather models (GraphCast, Pangu-Weather, Fuxi) that a 2026 study (Zhang & Engelke, *Science Advances*) found to underestimate the frequency and intensity of record-breaking extreme weather events. That study did not test AIFS directly, but because of the shared approach, we apply the same caution here."
+**Model limitations panel (use this exact framing — do not strengthen or weaken the claim):** "This app compares ECMWF's physics-based IFS model with ECMWF's AI-based AIFS model. AIFS shares its underlying approach — a graph neural network trained on historical reanalysis data — with other AI weather models (GraphCast, Pangu-Weather, Fuxi). A 2026 study (Zhang & Engelke, Science Advances) found these models underestimate the frequency and intensity of record-breaking heat, cold, and wind extremes — the study did not evaluate precipitation or AIFS directly. We show model disagreement here as a signal worth your attention, not as a validated claim about which model is more accurate for rainfall specifically."
 
 **Divergence badge:** "Models disagree by {X}mm for this forecast."
 
