@@ -1,3 +1,4 @@
 "use server";
 import type { CityLocation } from "@/types/weather";
-export async function searchCity(_name: string): Promise<CityLocation[]> { return []; }
+import { geocodeCity } from "@/lib/openMeteo";
+export async function searchCity(name: string): Promise<CityLocation[]> { return geocodeCity(name); }
