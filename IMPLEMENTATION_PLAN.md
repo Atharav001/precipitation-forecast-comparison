@@ -1,3 +1,7 @@
+## Current Build Status
+
+Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, and Vercel KV caching described below were part of the original design and were not implemented in this build.
+
 # IMPLEMENTATION PLAN — Precipitation Forecast Comparison App
 
 > **READ THIS FIRST, AGENT.** This document is the single source of truth for what to build, in what order, with what exact names, parameters, and thresholds. Do not invent alternative approaches, parameter names, or thresholds not listed here. Where this document says "verify before coding," you MUST fetch the named URL and confirm the real parameter names before writing that module — do not guess or hallucinate a plausible-looking API parameter.

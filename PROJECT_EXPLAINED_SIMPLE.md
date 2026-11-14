@@ -1,3 +1,7 @@
+## Current Build Status
+
+Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, and Vercel KV caching described below were part of the original design and were not implemented in this build.
+
 # What We're Actually Building — Plain Language Version
 
 > This file is for you (Atharav), not the AI agent. You need to be able to explain this project in your own words for the written answers and video — no AI allowed there. Read this until you could explain it to a friend without notes.
