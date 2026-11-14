@@ -2,12 +2,24 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { computeConsensus } from "../lib/consensus";
 import { computeDivergence } from "../lib/divergence";
-import { getPointForecast, getEnsembleForecast, WeatherApiError } from "../lib/openMeteo";
+import { getPointForecast, getEnsembleForecast, geocodeCity, WeatherApiError } from "../lib/openMeteo";
 import { getClimatology } from "../lib/climatology";
 
 function mockJson(value: unknown) {
   globalThis.fetch = async () => new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } });
 }
+
+test("geocoding preserves regions for same-name cities", async () => {
+  mockJson({ results: [
+    { id: 1, name: "London", admin1: "England", country: "United Kingdom", latitude: 51.5, longitude: -0.1 },
+    { id: 2, name: "London", admin1: "Ontario", country: "Canada", latitude: 42.98, longitude: -81.24 },
+    { id: 3, name: "London", admin1: "Ohio", country: "United States", latitude: 39.88, longitude: -83.45 }
+  ] });
+  const cities = await geocodeCity("London");
+  assert.deepEqual(cities.map(city => [city.id, city.region, city.country]), [
+    [1, "England", "United Kingdom"], [2, "Ontario", "Canada"], [3, "Ohio", "United States"]
+  ]);
+});
 
 test("divergence threshold and tier boundaries", () => {
   assert.equal(computeDivergence({ ifsValueMm: 10, aifsValueMm: 12 }).divergenceFlag, false);

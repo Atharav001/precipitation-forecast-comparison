@@ -61,7 +61,15 @@ export async function geocodeCity(name: string): Promise<CityLocation[]> {
   const results: unknown[] = body.results === undefined ? [] : body.results as unknown[];
   return results.map((item): CityLocation => {
     if (!isRecord(item) || typeof item.name !== "string" || typeof item.country !== "string" || typeof item.latitude !== "number" || typeof item.longitude !== "number") throw new WeatherApiError("Geocoding result has an unexpected shape.", "BAD_RESPONSE");
-    return { name: item.name, country: item.country, latitude: item.latitude, longitude: item.longitude };
+    return {
+      id: typeof item.id === "number" ? item.id : undefined,
+      name: item.name,
+      region: typeof item.admin1 === "string" && item.admin1.trim() ? item.admin1 : undefined,
+      district: typeof item.admin2 === "string" && item.admin2.trim() ? item.admin2 : undefined,
+      country: item.country,
+      latitude: item.latitude,
+      longitude: item.longitude
+    };
   });
 }
 

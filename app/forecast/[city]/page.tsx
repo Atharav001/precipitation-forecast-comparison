@@ -30,12 +30,13 @@ function ForecastRow({ day, historical, max }: { day: DailyForecast; historical?
   </article>;
 }
 
-export default async function ForecastPage({ params, searchParams }: { params: Promise<{ city: string }>; searchParams: Promise<{ lat?: string; lon?: string }> }) {
+export default async function ForecastPage({ params, searchParams }: { params: Promise<{ city: string }>; searchParams: Promise<{ lat?: string; lon?: string; region?: string; country?: string }> }) {
   const { city: cityParam } = await params;
-  const { lat: latParam, lon: lonParam } = await searchParams;
+  const { lat: latParam, lon: lonParam, region, country } = await searchParams;
   const city = decodeURIComponent(cityParam);
   const lat = Number(latParam);
   const lon = Number(lonParam);
+  const locationDetail = [region, country].filter(Boolean).join(", ");
   let forecast: ForecastData | null = null;
   let ensemble: EnsembleData | null = null;
   let historical: ClimatologyDay[] = [];
@@ -73,7 +74,7 @@ export default async function ForecastPage({ params, searchParams }: { params: P
     <div className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-8 sm:pt-12">
       <nav className="text-xs font-semibold uppercase tracking-[0.16em] text-[#78908b]">Forecast <span className="mx-2 text-[#bbc8c0]">/</span> {city}</nav>
       <section className="mt-6 overflow-hidden rounded-[1.75rem] bg-[#173a3e] p-6 text-[#f7f7ef] shadow-[0_20px_50px_rgba(27,65,64,0.12)] sm:p-9">
-        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a9c8c0]">Your seven-day rain outlook</p><h1 className="mt-4 break-words font-[Georgia] text-4xl leading-tight sm:text-5xl">{city}</h1><p className="mt-3 text-sm text-[#bdd2cb]">Two ECMWF model forecasts, shown side by side.</p></div><div className="flex items-center gap-2 self-start rounded-full border border-[#62817c] px-4 py-2 text-xs font-semibold text-[#cce0d5]">{forecast?.source === "live" ? "● Live forecast data" : forecast ? "◷ Dated forecast snapshot" : "Forecast unavailable"}</div></div>
+        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a9c8c0]">Your seven-day rain outlook</p><h1 className="mt-4 break-words font-[Georgia] text-4xl leading-tight sm:text-5xl">{city}</h1><p className="mt-3 text-sm text-[#bdd2cb]">{locationDetail ? `${locationDetail} · ` : ""}Two ECMWF model forecasts, shown side by side.</p></div><div className="flex items-center gap-2 self-start rounded-full border border-[#62817c] px-4 py-2 text-xs font-semibold text-[#cce0d5]">{forecast?.source === "live" ? "● Live forecast data" : forecast ? "◷ Dated forecast snapshot" : "Forecast unavailable"}</div></div>
         {days.length > 0 && <div className="mt-9 grid grid-cols-3 gap-2 border-t border-[#416267] pt-7 sm:gap-6"><div><p className="text-[10px] font-semibold uppercase tracking-wider text-[#a6c1b9] sm:text-xs">{ifsCount === days.length ? "IFS total" : "IFS partial total"}</p><p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{ifsCount ? amount(ifsTotal) : "—"} <span className="text-sm font-normal text-[#a6c1b9]">mm</span></p></div><div><p className="text-[10px] font-semibold uppercase tracking-wider text-[#a6c1b9] sm:text-xs">{aifsCount === days.length ? "AIFS total" : "AIFS partial total"}</p><p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{aifsCount ? amount(aifsTotal) : "—"} <span className="text-sm font-normal text-[#a6c1b9]">mm</span></p></div><div><p className="text-[10px] font-semibold uppercase tracking-wider text-[#a6c1b9] sm:text-xs">Flagged days</p><p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{flagged} <span className="text-sm font-normal text-[#a6c1b9]">of {days.length}</span></p></div></div>}
       </section>
       {errorMessage && <div role="alert" className="mt-8 rounded-2xl border border-[#e8cbb8] bg-[#fcf0e8] p-6 text-[#934e30]">{errorMessage}</div>}

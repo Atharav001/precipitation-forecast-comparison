@@ -6,7 +6,13 @@ import { searchCity } from "@/app/actions/geocode";
 import type { CityLocation } from "@/types/weather";
 
 function cityUrl(city: CityLocation) {
-  return `/forecast/${encodeURIComponent(city.name)}?lat=${city.latitude}&lon=${city.longitude}`;
+  const query = new URLSearchParams({ lat: String(city.latitude), lon: String(city.longitude), country: city.country });
+  if (city.region) query.set("region", city.region);
+  return `/forecast/${encodeURIComponent(city.name)}?${query.toString()}`;
+}
+
+function placeDetail(city: CityLocation) {
+  return [city.region || city.district, city.country].filter(Boolean).join(", ");
 }
 
 export default function CitySearch() {
@@ -72,8 +78,8 @@ export default function CitySearch() {
     </div>
     {open && query.trim().length >= 2 && (results.length > 0 || message) && <div id="city-results" role="listbox" aria-label="City suggestions" className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#d7e0dc] bg-white p-2 shadow-[0_20px_45px_rgba(25,54,53,0.16)]">
       {message && <p role="status" className="px-3 py-3 text-sm text-[#a45536]">{message}</p>}
-      {results.map((city, index) => <button type="button" role="option" aria-selected={activeIndex === index} id={`city-option-${index}`} key={`${city.latitude}-${city.longitude}-${index}`} onMouseDown={event => event.preventDefault()} onClick={() => choose(city)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${activeIndex === index ? "bg-[#e7f0ec]" : "hover:bg-[#f2f5f1]"}`}><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e8f0ed] text-[#3c7374]" aria-hidden="true">⌖</span><span><strong className="block font-semibold text-[#1f3d3d]">{city.name}</strong><span className="text-xs text-[#718481]">{city.country}</span></span></button>)}
+      {results.map((city, index) => <button type="button" role="option" aria-selected={activeIndex === index} id={`city-option-${index}`} key={city.id ?? `${city.latitude}-${city.longitude}-${index}`} onMouseDown={event => event.preventDefault()} onClick={() => choose(city)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition ${activeIndex === index ? "bg-[#e7f0ec]" : "hover:bg-[#f2f5f1]"}`}><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e8f0ed] text-[#3c7374]" aria-hidden="true">⌖</span><span><strong className="block font-semibold text-[#1f3d3d]">{city.name}</strong><span className="text-xs text-[#718481]">{placeDetail(city)}</span></span></button>)}
     </div>}
-    <p className="mt-3 text-xs text-[#738784]">Suggestions appear as you type. Choose a location to compare forecasts.</p>
+    <p className="mt-3 text-xs text-[#738784]">Suggestions appear as you type. Places with the same name are distinguished by region and country. Try “London, United Kingdom” to narrow the list.</p>
   </div>;
 }

@@ -1,57 +1,72 @@
-# PreciCast release audit
+# PreciCast technical and scientific audit
 
-**Audit date:** 14 November 2026 (Asia/Kolkata)  
-**Repository:** [Atharav001/precipitation-forecast-comparison](https://github.com/Atharav001/precipitation-forecast-comparison)  
-**Deployment:** [precipitation-forecast.vercel.app](https://precipitation-forecast.vercel.app/)  
-**Scope:** source review, data-contract checks, five-city live-provider validation, automated tests, production build, local production HTTP checks, in-app browser review before the final push, and post-push public HTTP checks.
+**Date:** 14 November 2026 (Asia/Kolkata)
+
+**Repository:** [Atharav001/precipitation-forecast-comparison](https://github.com/Atharav001/precipitation-forecast-comparison)
+
+**Deployment:** [precipitation-forecast.vercel.app](https://precipitation-forecast.vercel.app/)
+**Scope:** source review, real provider checks, missing-data tests, a small retrospective ERA5 comparison, production build, dependency audit, and public HTTP checks.
 
 ## Executive assessment
 
-The application implements the planned city search, IFS/AIFS comparison, divergence rule, historical context and experimental blend, separate ensemble ranges, location map, error notices, and short-lived fallback snapshots. The code builds and the checked provider responses are internally consistent. **Forecast accuracy, the usefulness of the divergence threshold, and the blend's skill are not established** by these checks. The original Vercel KV design was replaced by Next.js's persistent Data Cache because Vercel KV is no longer available.
+The implemented comparison, geocoding, historical context, ensemble ranges, map component, and error handling pass the checks listed below. The search had a real presentation defect: multiple places named London looked identical because their administrative regions were hidden. Suggestions now show region and country, and the forecast heading retains those details.
+
+**Forecast accuracy and a benefit from the app's weighted blend remain unproven.** A reproducible 120 city-day comparison to ERA5 reanalysis found lower mean absolute error (MAE) for AIFS alone than for the app blend in this sample. ERA5 is a model-derived reconstruction, not independent gauge truth. The blend is still labelled experimental. A gauge-backed study is required before claiming skill or treating the severity and disagreement rules as validated warnings.
+
+## Methods and source evidence
+
+- **Live provider sample:** `node --import tsx scripts/validate-live.ts` fetched seven daily point values, seven ensemble days, and 2016–2025 ERA5 seasonal data for Bengaluru, Mumbai, Jaisalmer, Shimla, and London on 14 November 2026. Upstream values change with each model run.
+- **Retrospective sample:** `python3 scripts/backtest.py` fetched IFS and AIFS 00 UTC runs dated 15 April, 15 June, 15 August, and 15 October 2026 for those five cities. It sums only complete 24-hour local days at leads 1–6, validates mm units, and excludes missing days. It compared 120 paired city-days against same-coordinate, same-date ERA5 daily precipitation; no pairs were skipped. The app blend uses the implementation's ten-year seasonal P90, sample maximum, and tier weights. [Raw rows and summaries](scripts/backtest-results.json) permit recalculation.
+- **Source limitations:** The [Open-Meteo historical documentation](https://open-meteo.com/en/docs/historical-weather-api) identifies ERA5 as reanalysis. The [Single Runs API](https://open-meteo.com/en/docs/single-runs-api) provides archived model initializations. This comparison can share model and provider biases. It does not replace quality-controlled rain gauges or radar.
+- **Future forecast limitation:** Today's live seven-day values cannot yet be checked against future rainfall. Matching the page to Open-Meteo checks transfer and calculation, not whether the forecast will come true.
 
 ## System-by-system findings
 
-| System | Check and evidence | Result | Limit |
+| System | Evidence | Status | Residual risk |
 |---|---|---|---|
-| City search | In-app browser: typing `Lon` produced London and other matching locations before Enter; selecting London navigated to its coordinate URL. | Pass | Provider ranking and duplicate city names can vary. |
-| Point forecast | Direct [Open-Meteo forecast API](https://open-meteo.com/en/docs) calls for Bengaluru, Mumbai, Jaisalmer, Shimla, and London returned seven dates and `mm` units. The local London page total matched the API sums: IFS 21.3 mm and AIFS 29.0 mm. | Pass | This checks data fidelity, not forecast accuracy. |
-| Missing and invalid data | Automated tests cover a missing AIFS series, null daily values, wrong units, and a fully absent forecast. Missing values remain unavailable; a malformed response throws `WeatherApiError`. | Pass | No real missing series was encountered in the five-city live sample. |
-| Negative precipitation | Real provider responses included −0.1 mm (Jaisalmer) and −0.2 mm (Shimla). Small negative values are clamped to 0 mm and are not silently added to totals. | Pass with documented normalization | Values below −1 mm are treated as invalid; that cutoff is a defensive implementation rule. |
-| Divergence | Pure-function boundary tests pass. London triggered three flags in seven days; the four Indian cities tested triggered zero. | Pass | `max(2 mm, 25% of higher forecast)` is a heuristic, not a calibrated warning threshold. |
-| ERA5 history | A real ten-year [archive API](https://open-meteo.com/en/docs/historical-weather-api) request returned 3,653 dates from 2016-01-01 through 2025-12-31, `mm` units, and no null values for Bengaluru. Live function checks returned 210 seasonal samples for each tested city. | Pass | ERA5 is reanalysis, not an independent gauge observation or a forecast verification dataset. |
-| Severity and blend | Seven automated tests include zero-rain, P90, and severe boundaries. Five-city live checks produced Routine and Locally Unusual labels. The page labels the weighted number experimental. | Functional pass; scientific validation open | No severe live case or historical backtest was established. A dry-season P90 of zero can label a small positive amount unusual. |
-| Ensembles | [Open-Meteo ensemble API](https://open-meteo.com/en/docs/ensemble-api) returned 50 daily IFS members and 50 AIFS members for Bengaluru. The application computes separate per-model P10–P90 ranges and means. | Pass | Member ranges are ensemble spread, not calibrated confidence intervals. The original plan's illustrative ensemble-mean URL did not provide the daily quantiles needed. |
-| Map | In-app local browser displayed Leaflet controls and OpenStreetMap attribution after correcting a React Leaflet development crash. The Leaflet map is client-rendered. | Local pass | The map tiles and client interaction require a post-push live browser check. |
-| Fallback and error state | Four real city snapshots were saved with timestamps. Older snapshots are rejected. Production HTTP request with invalid coordinates returned a readable error; automated tests cover malformed upstream data. | Pass for tested paths | The static snapshot is useful only on its forecast start date and is not a long-term outage strategy. A forced live upstream outage was not independently exercised in the final production build. |
-| Cache | Ensemble fetch uses one-hour `next.revalidate`; archive fetch uses 30 days. [Next.js fetch documentation](https://nextjs.org/docs/15/app/api-reference/functions/fetch) describes this as persistent Data Cache behavior. | Implemented | Vercel production cache hit/miss and expiration telemetry were not inspected. |
-| Security and dependencies | Next.js upgraded from 14.2.35 to 15.5.29; PostCSS pinned to patched 8.5.23 or newer. `npm audit` reported zero known vulnerabilities. | Pass at audit time | Dependency advisories can change. |
-| Build and tests | `npm test`: 7/7 pass. `npm run check`: pass. `npm run build`: pass. Local production server returned HTTP 200 for London, Bengaluru, and a readable invalid-coordinate case. | Pass | Browser checks of the final deployed commit remain a separate release gate. |
-| Post-push deployment | The public Vercel URL returned HTTP 200 for all five cities, with historical and ensemble sections present; invalid coordinates returned a readable error. | Server-rendered paths pass | A post-push visual mobile and client-side map check could not be run after the in-app browser tool became unavailable. |
+| Search and location identity | Real [geocoding](https://open-meteo.com/en/docs/geocoding-api) results include London in England, Ontario, Ohio, Kentucky, and Arkansas. The API returns `admin1` and IDs. Search now shows region/country, and a regression test covers same-name places. Coordinate URLs select the exact result. | **Fixed; tested** | Provider ranking changes. Older manually constructed URLs without region remain less descriptive. |
+| Point forecast | The app requests `precipitation_sum`, `models=ecmwf_ifs025,ecmwf_aifs025_single`, seven days, `timezone=auto`, and mm. All five live cities returned seven dates and zero missing point values. | **Pass for sample** | No issued-run identifier is stored; later provider responses may differ. |
+| Schema and missing values | Parser checks dates, array lengths, units, coordinates, and finite values. Tests cover missing AIFS, null values, malformed units, and fully absent series. Small negative rounding artefacts are clamped to zero; values below −1 mm fail. | **Pass in tests** | The −1 mm cutoff is a defensive convention, not a provider guarantee. |
+| Divergence badge | Pure function uses `abs(IFS−AIFS) > max(2 mm, 0.25 × higher model)` with strict boundary tests. Current live sample flagged one Bengaluru and two London days. Archived sample flagged 19/120 pairs. | **Calculation pass; meaning unvalidated** | The rule is an attention cue, not an accuracy or hazard alert. The flagged subset had higher MAE in this small ERA5 proxy sample, but event and location mix differ. |
+| Seasonal ERA5 context | Ten complete years, ±10 seasonal days, P90, and sample maximum are implemented. Live checks returned 210 first-day samples per city. Tests cover zero rain and tier boundaries. | **Calculation pass; labels unvalidated** | Dry-location P90 can be zero, making any positive rain “Locally Unusual.” “Severe Outlier” describes a ten-year ERA5 sample, not a station record or impact forecast. |
+| Experimental weighted blend | Weights are 40/60 IFS/AIFS for Routine, 65/35 for Locally Unusual, 80/20 for Severe Outlier. The backtest reproduces the same tier rule. | **Implemented; no demonstrated skill** | Its ERA5 sample MAE is worse than AIFS alone and slightly worse than a 50/50 blend. |
+| Ensemble display | Live checks returned seven dates and 50 members per ECMWF ensemble on day one. Code calculates separate P10, median, P90, and mean after requiring 10 valid members. | **Pass for sample** | Member spread is not a calibrated confidence interval. |
+| Map and chart | Source review confirms client-rendered Leaflet/OpenStreetMap map and responsive chart. A prior local in-app browser review saw map controls and chart; this turn has no interactive browser inspection tool. | **Code/build pass; live visual gate open** | Public HTTP cannot prove tile loading, hydration, or mobile layout. |
+| Errors and fallback | Invalid coordinates and malformed responses become readable errors. Ensemble/history failures become isolated notices. A fixed snapshot is accepted only on its first forecast date. | **Tested paths pass; resilience limited** | The checked-in snapshot is dated 14 November 2026 and expires after that local day. A forced production outage was not exercised. |
+| Cache and performance | Ensemble fetch revalidates after one hour; archive fetch after 30 days. Point forecast and geocoding fetch fresh. Dynamic forecast route built successfully. | **Implemented** | No production cache, latency, rate-limit, or failure telemetry was available. |
+| Security and dependencies | TypeScript check and production build pass. `npm audit --json` found zero known vulnerabilities on 14 November 2026. Coordinate input is range-checked; React renders location labels as text. | **Pass for checked scope** | Advisory status changes; this is not a penetration test. |
+| Deployment | Previous public HTTP checks returned 200 for five city pages and readable invalid-coordinate output. A fresh post-push check is recorded below. | **Server output check** | No final deployed client/mobile visual pass while the in-app browser tool is unavailable. |
 
-## Five-city provider sample
+## Archived rainfall comparison
 
-The following is a **single forecast run on 14 November 2026**. Forecast values can change with a later ECMWF run.
+MAE below is in mm against ERA5 for **120 paired city-days** (24 per city). Lower is better for this limited sample and proxy. It is not a skill score against observed rainfall.
 
-| City | Climate contrast | Missing point values | Divergence days | Historical tier result |
-|---|---|---:|---:|---|
-| Bengaluru | Tropical plateau | 0 | 0 | Routine on all 7 days |
-| Mumbai | Coastal monsoon | 0 | 0 | Routine on all 7 days |
-| Jaisalmer | Arid | 0 | 0 | Locally Unusual on 2 days |
-| Shimla | Mountain | 0 | 0 | Locally Unusual on 1 day |
-| London | Temperate maritime | 0 | 3 | Locally Unusual on 2 days |
+| Forecast series | Overall | Bengaluru | Mumbai | Jaisalmer | Shimla | London |
+|---|---:|---:|---:|---:|---:|---:|
+| IFS | 2.573 | 2.883 | 1.783 | 0.138 | 6.721 | 1.342 |
+| AIFS | **2.204** | **1.675** | **1.183** | **0.050** | 6.654 | 1.458 |
+| Equal 50/50 blend | 2.318 | 2.146 | 1.471 | 0.094 | **6.625** | **1.254** |
+| App tier-weighted blend | 2.359 | 2.337 | 1.408 | 0.107 | 6.628 | 1.316 |
 
-Each city returned seven point-forecast dates, seven ensemble dates, 50 members per ensemble on the first day, and a 2016–2025 ERA5 comparison period. The validation script is [`scripts/validate-live.ts`](scripts/validate-live.ts) and can be rerun after model updates.
+Overall RMSE was 11.025 mm (IFS), 10.572 (AIFS), 10.744 (equal), and 10.769 (app blend). A Shimla ERA5 value of 123.2 mm on 19 August 2026 dominates squared error; both archived forecasts were below 10 mm. A single extreme and 120 correlated samples cannot establish a general ranking. The app tiers occurred 112 Routine, 7 Locally Unusual, and 1 Severe Outlier times. That severe-tier forecast was 33.6 mm IFS versus 14.1 mm ERA5 for Bengaluru on 17 October 2026. It illustrates why the label must be read as *forecast relative to a modelled historical sample*, not a verified event.
 
-## Research and interpretation controls
+## Verification commands
 
-The 2026 Zhang and Engelke study evaluated record-breaking heat, cold, and wind in GraphCast, Pangu-Weather, and FuXi. It did not evaluate precipitation or AIFS. The site states this limitation. Model disagreement is an inspection signal, not evidence that IFS or AIFS is more accurate for rainfall. The blend's fixed weights cannot support a skill claim without a retrospective comparison using archived forecasts and observed precipitation.
+| Check | Result on 14 November 2026 |
+|---|---|
+| `npm test` | 8/8 passed, including the new same-name geocoding test. |
+| `npm run check` | Passed. |
+| `npm run build` | Passed; `/forecast/[city]` is a dynamic route. |
+| Local production HTTP | Home, London with region/country, and invalid-coordinate routes returned 200; London included England and the invalid route included a readable error. |
+| `node --import tsx scripts/validate-live.ts` | Five cities passed; seven daily values and 50+50 first-day ensemble members each; zero missing point values in this sample. |
+| `python3 scripts/backtest.py` | 120 paired city-days; zero skips; results saved in `scripts/backtest-results.json`. |
+| `npm audit --json` | Zero known vulnerabilities at check time. |
 
-## Release gates and remaining work
+## Remaining gates, ranked
 
-1. Complete a post-push in-app browser check of live city search, chart rendering, map tiles, and mobile layout. Public HTTP checks confirm the new server-rendered content, but they do not execute client JavaScript or inspect the mobile viewport. The in-app browser review above was on the local pre-push build.
-2. Run a precipitation backtest using archived **IFS and AIFS forecasts** paired with independent gauge observations (or clearly labelled reanalysis as a weaker proxy). Compare each model, the fixed blend, and a simple equal-weight baseline by location, lead time, season, and heavy-rain event threshold.
-3. Calibrate or redesign divergence and severity thresholds based on that evaluation. In particular, inspect false alerts when local P90 is zero and validate the “Severe Outlier” label across climates.
-4. Replace the static same-day snapshot with a maintained, dated fallback if sustained outage resilience is required. Keep freshness explicit and never present an old forecast as current.
-5. Add production monitoring for Open-Meteo failures, latency, missing values, cache effectiveness, and map tile failures if the app will be operated beyond a demo.
+1. **Observed-rainfall validation:** Collect independent, quality-controlled daily gauges, with matching location, timezone, and accumulation window. Test many dates, climates, seasons, and leads. Compare IFS, AIFS, equal blend, and app blend; include wet-day and heavy-rain metrics and uncertainty intervals. Only then tune thresholds or claim skill.
+2. **Final deployed client check:** Use the Codex in-app browser to verify suggestion labels, selection, chart hydration, map tiles, keyboard navigation, error notices, and a narrow mobile viewport. That inspection tool was unavailable during this audit; no visual pass is claimed.
+3. **Operational resilience:** Replace the fixed 14 November demo snapshot with a maintained, dated fallback if outage continuity matters. Add provider, cache, latency, rate-limit, and tile monitoring before relying on the service beyond a demo.
+4. **Method presentation:** Keep the blend experimental and tiers explicitly tied to ERA5. The limited proxy result does not justify tuning weights to this sample; a larger gauge-backed evaluation should guide redesign.
 
-**Conclusion:** The implemented functions, tested routes, and five public server-rendered city pages work for the checked cases. This audit does not certify prediction accuracy, all possible upstream responses, or final live client-side behavior until the remaining browser release gate is completed.
+**Conclusion:** The checked source paths and provider samples show working data handling and calculations. City ambiguity is fixed. Prediction accuracy, threshold usefulness, durable fallback behavior, and final deployed visual behavior remain unverified to the standards above.

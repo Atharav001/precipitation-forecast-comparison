@@ -1,4 +1,4 @@
-export interface CityLocation { name: string; country: string; latitude: number; longitude: number; }
+export interface CityLocation { id?: number; name: string; region?: string; district?: string; country: string; latitude: number; longitude: number; }
 export interface DailyForecast { date: string; ifsValueMm: number | null; aifsValueMm: number | null; }
 export interface ForecastData {
   coordinates: { latitude: number; longitude: number };
