@@ -44,4 +44,10 @@ The live validation script makes real Open-Meteo requests for Bengaluru, Mumbai,
 
 ## Scientific limitations
 
+### Experimental result
+
+In a 120 city-day retrospective comparison against ERA5 reanalysis, mean absolute error was 2.204 mm for AIFS, 2.318 mm for an equal blend, 2.359 mm for PreciCast's weighted blend, and 2.573 mm for IFS. The proposed weighting did not improve on AIFS in this small sample. ERA5 is not independent rain-gauge truth, so this result does not establish general model skill.
+
+Known limitations and next steps: see [AUDIT_REPORT.md](AUDIT_REPORT.md) — validation against observed rainfall, blend weight re-tuning, and badge calibration are identified but not yet completed.
+
 The divergence threshold and blend weights are transparent heuristics, not calibrated rainfall skill scores. Ensemble ranges show spread among model members, not guaranteed confidence intervals. A 2026 study by Zhang and Engelke tested GraphCast, Pangu-Weather, and FuXi on heat, cold, and wind extremes; it tested neither AIFS nor precipitation. The [limitations panel](components/LimitationsPanel.tsx) explains this on the forecast page.

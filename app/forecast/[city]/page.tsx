@@ -7,7 +7,6 @@ import MapSection from "@/components/MapSection";
 import { getClimatology } from "@/lib/climatology";
 import { computeConsensus } from "@/lib/consensus";
 import { computeDivergence } from "@/lib/divergence";
-import { getFallbackForecast } from "@/lib/fallback";
 import { getEnsembleForecast, getPointForecast } from "@/lib/openMeteo";
 import type { ClimatologyDay, DailyForecast, EnsembleData, ForecastData } from "@/types/weather";
 
@@ -45,11 +44,7 @@ export default async function ForecastPage({ params, searchParams }: { params: P
   if (latParam === undefined || lonParam === undefined) errorMessage = "Choose a city from the search results to load its forecast.";
   else {
     try { forecast = await getPointForecast(lat, lon); }
-    catch (error: unknown) {
-      forecast = getFallbackForecast(lat, lon);
-      if (forecast) notices.push(`Live forecast is unavailable. Showing a dated Open-Meteo snapshot fetched ${new Date(forecast.fetchedAt).toLocaleString("en-IN", { timeZone: forecast.timezone })}.`);
-      else errorMessage = error instanceof Error ? error.message : "Forecast is temporarily unavailable.";
-    }
+    catch { errorMessage = "Forecast temporarily unavailable. Please retry shortly."; }
     if (forecast) {
       const [ensembleResult, historyResult] = await Promise.allSettled([
         getEnsembleForecast(lat, lon),
