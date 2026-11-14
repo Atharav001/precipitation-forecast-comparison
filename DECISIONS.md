@@ -17,7 +17,7 @@ Every mainstream consumer weather app either shows one blended number (hiding di
 
 ## 3. Why these exact consensus weight numbers (0.8/0.2, 0.65/0.35, 0.4/0.6) **(correction)**
 
-An earlier version of this plan implied these weights were empirically derived from the research. They are not. The cited study evaluated heat, cold, and wind, not precipitation or AIFS. These weights are an unvalidated rainfall heuristic and were not implemented. Any future consensus forecast needs a precipitation backtest against the individual models before accuracy claims can be made.
+An earlier version of this plan implied these weights were empirically derived from the research. They are not. The cited study evaluated heat, cold, and wind, not precipitation or AIFS. These weights are an unvalidated rainfall heuristic and are now implemented only as an explicitly experimental blend. A precipitation backtest against the individual models is needed before accuracy claims can be made.
 
 ## 4. Why "Locally Unusual" and "Severe Outlier," not "record-breaking" for both tiers **(correction)**
 
@@ -33,7 +33,7 @@ IFS and AIFS ensembles use different perturbation methodologies and member count
 
 ## 7. Why Vercel KV instead of an in-memory cache **(correction)**
 
-An earlier draft said to "cache climatology aggressively" without specifying a mechanism, implicitly assuming an in-memory object would work. On Vercel's serverless platform, function instances are ephemeral and don't share memory across invocations — an in-memory cache would appear to work in local development and then do nothing in production, silently defeating the entire point of caching (both the latency benefit and the rate-limit protection). Vercel KV is the minimal real fix: a few lines of SDK code, free at this scale, and it actually persists.
+An earlier draft said to "cache climatology aggressively" without specifying a mechanism, implicitly assuming an in-memory object would work. On Vercel's serverless platform, function instances are ephemeral and don't share memory across invocations — an in-memory cache would appear to work in local development and then do nothing in production, silently defeating the entire point of caching (both the latency benefit and the rate-limit protection). Vercel KV is no longer offered. The implemented alternative is the persistent Next.js Data Cache with one-hour revalidation for ensembles and 30-day revalidation for ERA5 archive responses.
 
 ## 8. Why a tiered, cuttable scope with a hard hour-40 checkpoint
 

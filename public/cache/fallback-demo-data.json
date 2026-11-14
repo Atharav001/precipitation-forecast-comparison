@@ -1,0 +1,178 @@
+{
+  "fetchedAt": "2026-11-14T15:18:44.235419+00:00",
+  "source": "Open-Meteo IFS/AIFS forecast snapshot",
+  "cities": [
+    {
+      "city": "Bengaluru",
+      "latitude": 12.97194,
+      "longitude": 77.59369,
+      "timezone": "Asia/Kolkata",
+      "daily": [
+        {
+          "date": "2026-11-14",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-15",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-16",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-17",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-18",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-19",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-20",
+          "ifsValueMm": 0,
+          "aifsValueMm": 1.8
+        }
+      ]
+    },
+    {
+      "city": "Mumbai",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "timezone": "Asia/Kolkata",
+      "daily": [
+        {
+          "date": "2026-11-14",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-15",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-16",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-17",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-18",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-19",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-20",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        }
+      ]
+    },
+    {
+      "city": "Jaisalmer",
+      "latitude": 26.9157,
+      "longitude": 70.9083,
+      "timezone": "Asia/Kolkata",
+      "daily": [
+        {
+          "date": "2026-11-14",
+          "ifsValueMm": 1.4,
+          "aifsValueMm": 2.0
+        },
+        {
+          "date": "2026-11-15",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0.2
+        },
+        {
+          "date": "2026-11-16",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-17",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-18",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-19",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-20",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        }
+      ]
+    },
+    {
+      "city": "Shimla",
+      "latitude": 31.1048,
+      "longitude": 77.1734,
+      "timezone": "Asia/Kolkata",
+      "daily": [
+        {
+          "date": "2026-11-14",
+          "ifsValueMm": 0.1,
+          "aifsValueMm": 0.2
+        },
+        {
+          "date": "2026-11-15",
+          "ifsValueMm": 0.5,
+          "aifsValueMm": 2.5
+        },
+        {
+          "date": "2026-11-16",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-17",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-18",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-19",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0
+        },
+        {
+          "date": "2026-11-20",
+          "ifsValueMm": 0,
+          "aifsValueMm": 0.1
+        }
+      ]
+    }
+  ]
+}

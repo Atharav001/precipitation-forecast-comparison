@@ -1,6 +1,6 @@
 ## Current Build Status
 
-Due to time constraints, the current build includes city geocoding, a seven-day IFS versus AIFS precipitation comparison, a divergence badge, and a limitations panel. The historical severity tiers, weighted consensus algorithm, ensemble bands, map, Vercel KV caching, and cached fallback data described below were part of the original design and were not implemented in this build.
+The current build includes city geocoding, seven-day IFS versus AIFS precipitation comparison, divergence badges, ten-year ERA5 seasonal severity context, a clearly labelled experimental weighted blend, separate IFS and AIFS ensemble bands, a Leaflet map, a limitations panel, and same-day fallback snapshots for four demo cities. Ensemble and archive requests use the persistent Next.js Data Cache. Vercel KV was not implemented because Vercel no longer offers it. The blend weights, tiers, and divergence threshold have not been backtested against observed rainfall. Sections below preserve the original design specification; where they mention Vercel KV, React-Leaflet, or unverified URL examples, the implemented approach above and [ARCHITECTURE.md](ARCHITECTURE.md) take precedence.
 
 # IMPLEMENTATION PLAN — Precipitation Forecast Comparison App
 
@@ -24,7 +24,7 @@ Then paste this entire plan as context before any coding begins.
 
 ## 1. What this app does (one paragraph, memorize this)
 
-The original design proposed showing ECMWF's physics-based IFS and AI-based AIFS precipitation forecasts side by side, with a **Divergence Badge**, a rule-based **Consensus Forecast**, and local historical severity tiers. Only the model comparison and divergence badge are implemented. The proposed consensus weighting has not been validated for precipitation.
+The app shows ECMWF's physics-based IFS and AI-based AIFS precipitation forecasts side by side, with a **Divergence Badge**, a rule-based experimental **Consensus Forecast**, and local historical severity tiers. The consensus weighting and severity thresholds have not been validated for precipitation skill.
 
 ---
 
@@ -128,8 +128,8 @@ Commit immediately after scaffold succeeds and runs locally.
 ```
 
 ### 5.3 Data layer first (build and verify before any UI)
-1. `lib/openMeteo.ts`: the original design called for three exported functions — `geocodeCity(name)`, `getPointForecast(lat, lon)`, `getEnsembleMean(lat, lon)`. The first two were implemented; `getEnsembleMean` was not. The proposed functions would return typed data or throw a typed error (`WeatherApiError`) and be imported directly rather than called via `fetch()` to your own domain.
-2. `lib/climatology.ts`: the original design called for `getClimatology(lat, lon, dayOfYear)` to compute the `dayOfYearBucket` (see ARCHITECTURE.md Section 3), check Vercel KV for that bucket key, and on a miss query the Open-Meteo archive for the pooled ±10-day-window, multi-year sample, compute P90 and max, write it to KV, and return `{ p90Mm, maxMm }`. This module was not implemented.
+1. `lib/openMeteo.ts`: the implemented functions are `geocodeCity(name)`, `getPointForecast(lat, lon)`, `getEnsembleForecast(lat, lon)`, and `getHistoricalPrecipitation(lat, lon, start, end)`. They validate response data and throw typed `WeatherApiError` values. The ensemble implementation uses daily members to calculate per-model percentile bands because the original illustrative ensemble-mean URL did not provide daily quantiles.
+2. `lib/climatology.ts`: `getClimatology(lat, lon, dates)` requests ten complete calendar years of ERA5 daily precipitation and computes a ±10-day seasonal window, P90, and sample maximum for each forecast date. It uses the Next.js Data Cache through the archive fetch, rather than Vercel KV.
 3. Test each function independently from a temporary scratch script (e.g. `tsx scripts/test-data-layer.ts`) before wiring to UI — do not create throwaway API routes just to test these, since no route handlers exist for them in this build. Print real returned values to console. Confirm units (precipitation in mm), confirm both model values differ from each other for at least one test city, and confirm the climatology P90/max values look sane (a coastal monsoon city's P90 should be visibly higher than a desert city's).
 4. Only proceed to UI once all functions return verified real data.
 
@@ -161,7 +161,7 @@ Before Day 3, manually fetch and save real responses for 3–4 cities (one monso
 
 ## 6. The Hybrid Consensus Algorithm — exact specification
 
-The original design called for a pure function with fully typed inputs and outputs, but it was not implemented. Do not add randomness or machine learning here — the proposed rule was deliberately deterministic and auditable.
+`lib/consensus.ts` implements this pure, typed, deterministic rule. It adds a zero-rain guard so a dry-season P90 of zero cannot label a zero-rain forecast unusual. The weighting remains an unvalidated heuristic; no accuracy claim follows from this implementation.
 
 ```typescript
 type Tier = "ROUTINE" | "LOCALLY_UNUSUAL" | "SEVERE_OUTLIER";
@@ -223,7 +223,7 @@ function computeConsensus(input: ConsensusInput): ConsensusOutput {
 
 **Locally Unusual tier:** "Locally Unusual: this forecast is above the 90th percentile of this location's recent rainfall history. This is a notable but not unprecedented amount."
 
-**Severe Outlier tier (original design, not implemented; copy requires validation before use):** "Severe Outlier: this forecast approaches or exceeds this location's historical maximum in the selected dataset. This does not establish which model is more accurate or provide a lower bound for rainfall."
+**Severe Outlier tier (implemented as an experimental context label; copy requires further validation before any accuracy claim):** "Severe Outlier: this forecast approaches or exceeds this location's historical maximum in the selected dataset. This does not establish which model is more accurate or provide a lower bound for rainfall."
 
 **Model limitations panel (use this exact framing — do not strengthen or weaken the claim):** "This app compares ECMWF's physics-based IFS model with ECMWF's AI-based AIFS model. AIFS and the AI weather models in the cited study (GraphCast, Pangu-Weather, FuXi) are all data-driven, but they use different neural network designs — AIFS and GraphCast use graph neural network components, while Pangu-Weather and FuXi use transformer architectures. A 2026 study (Zhang & Engelke, Science Advances) found these AI models underestimate the frequency and intensity of record-breaking heat, cold, and wind extremes. That study did not evaluate precipitation or AIFS directly. We show model disagreement here as a signal worth attention, not as a validated accuracy claim."
 
