@@ -4,7 +4,7 @@ export interface ForecastData {
   coordinates: { latitude: number; longitude: number };
   timezone: string;
   fetchedAt: string;
-  source: "live" | "snapshot";
+  source: "live";
   daily: DailyForecast[];
 }
 export type Tier = "ROUTINE" | "LOCALLY_UNUSUAL" | "SEVERE_OUTLIER";

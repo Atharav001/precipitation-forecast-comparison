@@ -9,10 +9,10 @@ PreciCast compares daily precipitation forecasts from ECMWF's physics-based IFS 
 - City suggestions appear while typing, using Open-Meteo geocoding. Same-name places show their region and country; a country qualifier such as `London, United Kingdom` narrows the search.
 - Seven daily IFS and AIFS precipitation totals are shown in millimetres. Missing model values are labelled unavailable; small negative API rounding artefacts are displayed as zero.
 - A divergence badge appears when `abs(IFS − AIFS) > max(2 mm, 25% × max(IFS, AIFS))`.
-- An **experimental blend** and local severity tier use the original plan's fixed weights and a ten-year ERA5 seasonal window. A small retrospective check against ERA5 reanalysis found no overall improvement from the app blend over AIFS alone; this is not validation against observed rainfall. No accuracy improvement is claimed.
+- An **experimental blend** and descriptive ERA5 comparison tiers use the original plan's fixed weights and a ten-year seasonal window. A small retrospective check against ERA5 reanalysis found no overall improvement from the app blend over AIFS alone; this is not validation against observed rainfall. No accuracy improvement is claimed.
 - Separate IFS and AIFS ensemble charts show each model's 10th–90th percentile of daily member rainfall. Members from different ensembles are never paired or merged.
 - A Leaflet/OpenStreetMap map marks the searched forecast location. Model values describe a grid area, not a rain gauge at the pin.
-- When a live point forecast fails, a same-day snapshot can be shown for four demo cities with a visible timestamp. Older snapshots are rejected. Ensemble and historical failures are isolated and shown as notices.
+- When a live point forecast fails, the app shows a readable retry state. It never serves the expired demo snapshot. Ensemble and historical failures are isolated and shown as notices.
 
 ## Data and architecture
 
@@ -38,9 +38,12 @@ npm run check
 node --import tsx scripts/validate-live.ts
 npm audit
 python3 scripts/backtest.py
+python3 scripts/gauge-pilot.py
 ```
 
 The live validation script makes real Open-Meteo requests for Bengaluru, Mumbai, Jaisalmer, Shimla, and London. Results change with each model run. The backtest script reproduces a 120 city-day comparison from four archived 2026 runs, with the raw rows in [backtest-results.json](scripts/backtest-results.json). ERA5 is a reanalysis proxy, not independent rain-gauge truth. The [audit report](AUDIT_REPORT.md) records the checks and remaining limitations.
+
+The [NOAA station pilot](scripts/gauge-pilot-results.json) found only 12 same-date forecast/observation pairs across three nearby gauges, with unverified observation-day alignment. It is a data-availability check, not a basis for changing model weights or thresholds.
 
 ## Scientific limitations
 

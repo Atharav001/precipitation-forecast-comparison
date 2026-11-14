@@ -33,7 +33,7 @@ The forecast page imports server data functions directly. It does not call its o
 
 Point forecasts and geocoding use fresh requests. Ensemble requests use the Next.js Data Cache with a one-hour revalidation interval; ERA5 archive requests use 30 days. Vercel KV was in the original plan but is no longer available; see [Vercel's Redis documentation](https://vercel.com/docs/redis). This build needs no separate Redis resource.
 
-A failed point request can use `public/cache/fallback-demo-data.json` only for a matching demo city **and only on the snapshot's forecast start date**. The page labels the snapshot and its fetch time. An expired or unmatched snapshot is rejected and a readable error appears. If ensemble or archive data fails, the point comparison remains visible and the unavailable section is replaced with a notice.
+A failed point request shows a readable retry state. The expired static snapshot was removed, so an old forecast cannot be presented as current. If ensemble or archive data fails, the point comparison remains visible and the unavailable section is replaced with a notice.
 
 ## Presentation
 
@@ -41,4 +41,4 @@ A failed point request can use `public/cache/fallback-demo-data.json` only for a
 
 ## Open limitations
 
-There is no backtest against observed rainfall, no empirically calibrated tier or divergence threshold, and no dedicated uptime or rate-limit monitoring. The static fallback is intentionally short-lived to avoid showing old forecasts as current. The map pin marks requested coordinates; the provider may choose a nearby model grid cell.
+The NOAA gauge pilot has only 12 same-date pairs and unverified observation-day alignment. There is no adequate backtest against observed rainfall, no empirically calibrated tier or divergence threshold, and no dedicated uptime or rate-limit monitoring. The map pin marks requested coordinates; the provider may choose a nearby model grid cell.

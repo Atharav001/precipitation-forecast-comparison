@@ -3,7 +3,7 @@ import type { ConsensusOutput } from "@/types/weather";
 
 const tierExplanations = {
   ROUTINE: "The forecast is below the local seasonal threshold, or both models predict zero rainfall.",
-  LOCALLY_UNUSUAL: "The higher model forecast is at or above the 90th percentile of this location's recent ERA5 rainfall history. This does not mean record-breaking rainfall.",
+  LOCALLY_UNUSUAL: "The higher model forecast is at or above the 90th percentile of this location's recent ERA5 rainfall history. In a dry season this threshold may be zero; this label does not indicate a hazardous amount.",
   SEVERE_OUTLIER: "The higher model forecast approaches or exceeds the maximum in this ten-year ERA5 seasonal sample. This is not a verified station record or a rainfall lower bound."
 } as const;
 

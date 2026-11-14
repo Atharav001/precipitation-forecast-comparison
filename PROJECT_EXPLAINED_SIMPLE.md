@@ -8,4 +8,4 @@ The blended forecast is explicitly labelled **experimental**. Its weights came f
 
 The cited 2026 Zhang and Engelke study investigated record-breaking heat, cold, and wind in GraphCast, Pangu-Weather, and FuXi. It did not test AIFS or precipitation. The app's limitations panel states this directly.
 
-If live forecast data fails, the app may show a dated same-day snapshot for one of four demo cities. It will not pass an old snapshot off as a new forecast. The live deployment, source, and detailed audit are linked from the [README](README.md).
+If live forecast data fails, the app shows a retry message. The expired demo snapshot was removed, so an old forecast cannot appear as current. The live deployment, source, and detailed audit are linked from the [README](README.md).

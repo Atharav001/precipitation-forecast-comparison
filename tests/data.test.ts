@@ -4,6 +4,7 @@ import { computeConsensus } from "../lib/consensus";
 import { computeDivergence } from "../lib/divergence";
 import { getPointForecast, getEnsembleForecast, geocodeCity, WeatherApiError } from "../lib/openMeteo";
 import { getClimatology } from "../lib/climatology";
+import { loadForecast } from "../lib/forecast-state";
 
 function mockJson(value: unknown) {
   globalThis.fetch = async () => new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } });
@@ -19,6 +20,13 @@ test("geocoding preserves regions for same-name cities", async () => {
   assert.deepEqual(cities.map(city => [city.id, city.region, city.country]), [
     [1, "England", "United Kingdom"], [2, "Ontario", "Canada"], [3, "Ohio", "United States"]
   ]);
+});
+
+test("failed live forecast has a readable retry state and never uses expired data", async () => {
+  const result = await loadForecast(12.97, 77.59, async () => { throw new WeatherApiError("upstream unavailable", "NETWORK"); });
+  assert.deepEqual(result, { forecast: null, error: "Forecast temporarily unavailable. Please retry shortly." });
+  const invalid = await loadForecast(999, 0, async () => { throw new WeatherApiError("Invalid latitude", "INVALID_INPUT"); });
+  assert.equal(invalid.error, "Invalid latitude or longitude. Choose a city from search.");
 });
 
 test("divergence threshold and tier boundaries", () => {
