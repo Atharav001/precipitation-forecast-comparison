@@ -39,10 +39,16 @@ function finitePrecipitation(value: unknown): number | null {
   return Math.max(0, value);
 }
 
-function datesAndUnits(body: unknown, fields: string[]): { dates: string[]; daily: Record<string, unknown> } {
+function datesAndUnits(body: unknown, fields: string[], expectedDays?: number): { dates: string[]; daily: Record<string, unknown> } {
   if (!isRecord(body) || !isRecord(body.daily) || !isRecord(body.daily_units) || !Array.isArray(body.daily.time)) throw new WeatherApiError("Weather response has an unexpected shape.", "BAD_RESPONSE");
   const dates = body.daily.time;
-  if (!dates.length || !dates.every((date): date is string => typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))) throw new WeatherApiError("Weather response has invalid dates.", "BAD_RESPONSE");
+  if (!dates.length || (expectedDays !== undefined && dates.length !== expectedDays) || !dates.every((date): date is string => typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))) throw new WeatherApiError("Weather response has invalid or incomplete dates.", "BAD_RESPONSE");
+  const timestamps = dates.map(date => {
+    const timestamp = Date.parse(`${date}T00:00:00Z`);
+    if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== date) throw new WeatherApiError("Weather response has an invalid calendar date.", "BAD_RESPONSE");
+    return timestamp;
+  });
+  if (timestamps.some((timestamp, index) => index > 0 && timestamp - timestamps[index - 1] !== 86_400_000)) throw new WeatherApiError("Weather response has missing or duplicate dates.", "BAD_RESPONSE");
   for (const field of fields) {
     if (!Array.isArray(body.daily[field]) || body.daily[field].length !== dates.length || body.daily_units[field] !== "mm") throw new WeatherApiError(`Weather response has missing ${field} values or units.`, "BAD_RESPONSE");
   }
@@ -60,7 +66,7 @@ export async function geocodeCity(name: string): Promise<CityLocation[]> {
   if (!isRecord(body) || (body.results !== undefined && !Array.isArray(body.results))) throw new WeatherApiError("Geocoding response has an unexpected shape.", "BAD_RESPONSE");
   const results: unknown[] = body.results === undefined ? [] : body.results as unknown[];
   return results.map((item): CityLocation => {
-    if (!isRecord(item) || typeof item.name !== "string" || typeof item.country !== "string" || typeof item.latitude !== "number" || typeof item.longitude !== "number") throw new WeatherApiError("Geocoding result has an unexpected shape.", "BAD_RESPONSE");
+    if (!isRecord(item) || typeof item.name !== "string" || typeof item.country !== "string" || typeof item.latitude !== "number" || typeof item.longitude !== "number" || !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude) || item.latitude < -90 || item.latitude > 90 || item.longitude < -180 || item.longitude > 180) throw new WeatherApiError("Geocoding result has an unexpected shape.", "BAD_RESPONSE");
     return {
       id: typeof item.id === "number" ? item.id : undefined,
       name: item.name,
@@ -91,14 +97,15 @@ export async function getPointForecast(lat: number, lon: number): Promise<Foreca
   const aifsField = "precipitation_sum_ecmwf_aifs025_single";
   const fields = [ifsField, aifsField].filter(field => rawDaily[field] !== undefined || rawUnits[field] !== undefined);
   if (!fields.length) throw new WeatherApiError("Both forecast model series are unavailable.", "BAD_RESPONSE");
-  const { dates, daily: values } = datesAndUnits(body, fields);
+  const { dates, daily: values } = datesAndUnits(body, fields, 7);
   const ifs = fields.includes(ifsField) ? values[ifsField] as unknown[] : Array(dates.length).fill(null);
   const aifs = fields.includes(aifsField) ? values[aifsField] as unknown[] : Array(dates.length).fill(null);
   const daily = dates.map((date, index) => {
     return { date, ifsValueMm: finitePrecipitation(ifs[index]), aifsValueMm: finitePrecipitation(aifs[index]) };
   });
   if (!daily.some(day => day.ifsValueMm !== null || day.aifsValueMm !== null)) throw new WeatherApiError("Both forecast models are unavailable.", "BAD_RESPONSE");
-  return { coordinates: { latitude: lat, longitude: lon }, timezone: isRecord(body) && typeof body.timezone === "string" ? body.timezone : "UTC", fetchedAt: new Date().toISOString(), source: "live", daily };
+  if (typeof body.timezone !== "string" || !body.timezone) throw new WeatherApiError("Forecast response has no timezone.", "BAD_RESPONSE");
+  return { coordinates: { latitude: lat, longitude: lon }, timezone: body.timezone, fetchedAt: new Date().toISOString(), source: "live", daily };
 }
 
 function quantile(sorted: number[], probability: number): number {
@@ -123,7 +130,7 @@ export async function getEnsembleForecast(lat: number, lon: number): Promise<Ens
   const ifsKeys = Object.keys(body.daily).filter(key => /^precipitation_sum_member\d+_ecmwf_ifs025_ensemble$/.test(key));
   const aifsKeys = Object.keys(body.daily).filter(key => /^precipitation_sum_member\d+_ecmwf_aifs025_ensemble$/.test(key));
   if (ifsKeys.length < MIN_ENSEMBLE_MEMBERS && aifsKeys.length < MIN_ENSEMBLE_MEMBERS) throw new WeatherApiError("Ensemble members are unavailable.", "BAD_RESPONSE");
-  const { dates, daily } = datesAndUnits(body, [...ifsKeys, ...aifsKeys]);
+  const { dates, daily } = datesAndUnits(body, [...ifsKeys, ...aifsKeys], 7);
   const result = dates.map((date, index) => ({ date, ifs: ifsKeys.length >= MIN_ENSEMBLE_MEMBERS ? ensembleBand(daily, ifsKeys, index) : null, aifs: aifsKeys.length >= MIN_ENSEMBLE_MEMBERS ? ensembleBand(daily, aifsKeys, index) : null }));
   if (!result.some(day => day.ifs || day.aifs)) throw new WeatherApiError("Ensemble values are unavailable.", "BAD_RESPONSE");
   return { daily: result, fetchedAt: new Date().toISOString() };
@@ -135,5 +142,6 @@ export async function getHistoricalPrecipitation(lat: number, lon: number, start
   for (const [key, value] of Object.entries({ latitude: String(lat), longitude: String(lon), start_date: start, end_date: end, daily: "precipitation_sum", models: "era5", timezone: "auto", precipitation_unit: "mm" })) url.searchParams.set(key, value);
   const body = await requestJson(url, 60 * 60 * 24 * 30);
   const { dates, daily } = datesAndUnits(body, ["precipitation_sum"]);
+  if (dates[0] !== start || dates[dates.length - 1] !== end) throw new WeatherApiError("Historical rainfall record does not cover the requested dates.", "BAD_RESPONSE");
   return { dates, values: (daily.precipitation_sum as unknown[]).map(finitePrecipitation) };
 }

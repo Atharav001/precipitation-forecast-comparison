@@ -95,3 +95,21 @@ The earlier sections record the 14 November release. This follow-up records the 
 - **Response-time baseline:** Fifteen public HTTP requests across five cities, three per city, returned 200 with about 79 kB of HTML each. Medians were 794 ms Bengaluru, 549 ms Mumbai, 652 ms Jaisalmer, 566 ms Shimla, and 505 ms London. These are end-to-end measurements from one client, not server-only latency or a production percentile. No cache or data-path optimization was made without stronger telemetry.
 - **Visual gate:** The Codex in-app browser inspection tool is unavailable to this agent. Source, build, and HTTP tests cannot verify live map tiles, chart hydration, keyboard behavior, or a narrow viewport. This remains an open release gate; no visual pass is claimed.
 - **Post-push deployment:** Vercel marked commit `bfa6c2f` successful. All five public city routes returned HTTP 200; displayed seven-day IFS/AIFS totals matched fresh direct Open-Meteo responses in every case. The Experimental and descriptive tier text rendered on each page. Invalid coordinates rendered their separate message. These checks validate server output, not browser interaction.
+
+## 15 November 2026 re-audit
+
+This pass reviewed the current source, reran the provider and deployment checks, and tested the failure path in the production build. It found and fixed three further correctness issues:
+
+1. The city dropdown could briefly show results for the previous query while the next request was pending. Results now clear when a new search starts.
+2. A shortened, duplicate, impossible, or gapped date series could be accepted as a seven-day forecast. Point and ensemble responses now require seven valid consecutive calendar dates; the archive requires consecutive dates covering its requested range. The point response must include its timezone, and geocoding coordinates must be finite and in range.
+3. The Retry link after an upstream failure dropped the selected region and country. It now preserves the full location query.
+
+| Verification | Result |
+|---|---|
+| Automated tests | 12/12 passed, including malformed date series, missing timezone, invalid geocoding coordinates, and forced point-fetch failure. |
+| TypeScript and production build | Passed. |
+| Current dependency advisory scan | `npm audit --json`: zero known vulnerabilities. |
+| Live provider check | Bengaluru, Mumbai, Jaisalmer, Shimla, and London returned seven point and ensemble dates, no missing point values, 50 members per model on the first ensemble day, and complete 2016–2025 ERA5 history. |
+| Forced production outage | The London page showed a readable retry message; Retry retained England and United Kingdom; no stale snapshot or rainfall rows appeared. |
+
+**Still not certifiable:** Today's and future forecasts cannot be checked against future observations. The twelve same-date NOAA station pairs lack confirmed matching accumulation windows and are inadequate for weight or badge calibration. The in-app browser provides no inspection control to this agent, and the available Codex browser-testing runtime could not launch a controllable browser, so map tiles, chart hydration, keyboard interaction, and mobile rendering still lack a final visual pass. The invalid-coordinate page returns a readable error with HTTP 200, which is a semantic status-code limitation for automated clients. These are open findings, not passes.

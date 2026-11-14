@@ -36,6 +36,8 @@ export default function CitySearch() {
       return;
     }
     setLoading(true);
+    setResults([]);
+    setActiveIndex(-1);
     setMessage("");
     const timer = window.setTimeout(async () => {
       try {
