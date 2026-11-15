@@ -1,5 +1,6 @@
 import BrandHeader from "@/components/BrandHeader";
 import CitySearch from "@/components/CitySearch";
+import SiteFooter from "@/components/SiteFooter";
 
 export default function Home() {
   return <main className="min-h-screen bg-[#f6f5ef] text-[#193b3e]">
@@ -23,7 +24,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <footer className="mt-20 border-t border-[#d8ddd6] pt-6 text-xs text-[#788d87]">PreciCast · Data from Open-Meteo · Forecast values are model estimates, not observations.</footer>
+      <SiteFooter context="PreciCast · Data from Open-Meteo · Forecast values are model estimates, not observations." />
     </div>
   </main>;
 }

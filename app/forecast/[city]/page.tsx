@@ -4,6 +4,7 @@ import DivergenceBadge from "@/components/DivergenceBadge";
 import EnsembleChart from "@/components/EnsembleChart";
 import LimitationsPanel from "@/components/LimitationsPanel";
 import MapSection from "@/components/MapSection";
+import SiteFooter from "@/components/SiteFooter";
 import { getClimatology } from "@/lib/climatology";
 import { computeConsensus } from "@/lib/consensus";
 import { computeDivergence } from "@/lib/divergence";
@@ -85,7 +86,7 @@ export default async function ForecastPage({ params, searchParams }: { params: P
       {ensemble && <EnsembleChart ensemble={ensemble} />}
       {forecast && <MapSection lat={lat} lon={lon} city={city} />}
       <section className="mt-10"><LimitationsPanel /></section>
-      <footer className="mt-14 border-t border-[#d8ddd6] pt-6 text-xs text-[#788d87]">PreciCast · Forecast data: Open-Meteo / ECMWF · Historical context: ERA5 reanalysis</footer>
+      <SiteFooter context="PreciCast · Forecast data: Open-Meteo / ECMWF · Historical context: ERA5 reanalysis" />
     </div>
   </main>;
 }

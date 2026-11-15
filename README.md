@@ -1,24 +1,23 @@
+<p align="center"><img src="public/precicast-logo.svg" alt="PreciCast logo" width="72" height="72"></p>
+
 # PreciCast
 
-[Live app](https://precipitation-forecast.vercel.app/) · [Architecture](ARCHITECTURE.md) · [Audit](AUDIT_REPORT.md)
+PreciCast compares seven-day rainfall forecasts from ECMWF's physics-based IFS and AI-based AIFS models. Search for a city to see daily amounts, model disagreement, separate ensemble ranges, historical context, and a location map. Forecasts are estimates; disagreement does not show which model will be right.
 
-PreciCast compares daily precipitation forecasts from ECMWF's physics-based IFS and AI-based AIFS models for a searched city. It shows seven-day model values, flags material disagreement, places each day against a seasonal ERA5 reanalysis distribution, and displays separate ensemble uncertainty ranges. The app is a forecast comparison and context tool; it does not establish which model is more accurate for rainfall.
+**[Live app](https://precipitation-forecast.vercel.app/)** · **[Demo video](submission/precicast-demo.mp4)** · **[Audit and limitations](AUDIT_REPORT.md)**
 
-## What the app shows
+![PreciCast home screen](docs/assets/home-screen.png)
 
-- City suggestions appear while typing, using Open-Meteo geocoding. Same-name places show their region and country; a country qualifier such as `London, United Kingdom` narrows the search.
-- Seven daily IFS and AIFS precipitation totals are shown in millimetres. Missing model values are labelled unavailable; small negative API rounding artefacts are displayed as zero.
-- A divergence badge appears when `abs(IFS − AIFS) > max(2 mm, 25% × max(IFS, AIFS))`.
-- An **experimental blend** and descriptive ERA5 comparison tiers use the original plan's fixed weights and a ten-year seasonal window. A small retrospective check against ERA5 reanalysis found no overall improvement from the app blend over AIFS alone; this is not validation against observed rainfall. No accuracy improvement is claimed.
-- Separate IFS and AIFS ensemble charts show each model's 10th–90th percentile of daily member rainfall. Members from different ensembles are never paired or merged.
-- A Leaflet/OpenStreetMap map marks the searched forecast location. Model values describe a grid area, not a rain gauge at the pin.
-- When a live point forecast fails, the app shows a readable retry state. It never serves the expired demo snapshot. Ensemble and historical failures are isolated and shown as notices.
+## Tech stack
 
-## Data and architecture
+- **App:** Next.js App Router, React, TypeScript, Tailwind CSS
+- **Charts and map:** Recharts, Leaflet, OpenStreetMap
+- **Data:** Open-Meteo APIs for ECMWF forecasts, ensembles, geocoding, and ERA5 reanalysis
+- **Deployment:** Vercel; Next.js Data Cache for ensemble and historical responses
 
-The Next.js Server Component calls the Open-Meteo functions in-process. City search uses a Server Action. Point forecasts are fetched fresh; ensemble responses use the Next.js Data Cache for one hour and ERA5 archive responses for 30 days. This persistent framework cache replaces Vercel KV, which [Vercel no longer offers](https://vercel.com/docs/redis). No Redis credentials or external database are required.
+## How it works
 
-Data sources: [Open-Meteo forecast](https://open-meteo.com/en/docs), [ensemble](https://open-meteo.com/en/docs/ensemble-api), [historical weather](https://open-meteo.com/en/docs/historical-weather-api), and [geocoding](https://open-meteo.com/en/docs/geocoding-api). Historical thresholds come from ERA5 **reanalysis**, not station observations.
+The server fetches IFS and AIFS forecasts for the selected coordinates and compares their daily precipitation totals in millimetres. A transparent threshold flags days when their difference exceeds `max(2 mm, 25% of the larger forecast)`. The weighted blend and historical severity labels are **experimental**, not calibrated accuracy claims. Missing live forecasts produce a retry message rather than stale demo data.
 
 ## Run locally
 
@@ -27,30 +26,10 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The app needs network access to Open-Meteo and OpenStreetMap. It uses no API key for non-commercial demo traffic.
+Open `http://localhost:3000`. No API key is needed for non-commercial demo use. Run `npm test`, `npm run check`, and `npm run build` to verify the code.
 
-## Verify
+## Evaluation and limits
 
-```bash
-npm test
-npm run build
-npm run check
-node --import tsx scripts/validate-live.ts
-npm audit
-python3 scripts/backtest.py
-python3 scripts/gauge-pilot.py
-```
+In a small retrospective comparison of **120 city-days against ERA5 reanalysis**, mean absolute error was **2.204 mm for AIFS**, **2.318 mm for a 50/50 blend**, **2.359 mm for PreciCast's weighted blend**, and **2.573 mm for IFS**. The proposed weighting did not beat AIFS in this sample. ERA5 is not independent rain-gauge truth, so the result does not establish general rainfall skill.
 
-The live validation script makes real Open-Meteo requests for Bengaluru, Mumbai, Jaisalmer, Shimla, and London. Results change with each model run. The backtest script reproduces a 120 city-day comparison from four archived 2026 runs, with the raw rows in [backtest-results.json](scripts/backtest-results.json). ERA5 is a reanalysis proxy, not independent rain-gauge truth. The [audit report](AUDIT_REPORT.md) records the checks and remaining limitations.
-
-The [NOAA station pilot](scripts/gauge-pilot-results.json) found only 12 same-date forecast/observation pairs across three nearby gauges, with unverified observation-day alignment. It is a data-availability check, not a basis for changing model weights or thresholds.
-
-## Scientific limitations
-
-### Experimental result
-
-In a 120 city-day retrospective comparison against ERA5 reanalysis, mean absolute error was 2.204 mm for AIFS, 2.318 mm for an equal blend, 2.359 mm for PreciCast's weighted blend, and 2.573 mm for IFS. The proposed weighting did not improve on AIFS in this small sample. ERA5 is not independent rain-gauge truth, so this result does not establish general model skill.
-
-Known limitations and next steps: see [AUDIT_REPORT.md](AUDIT_REPORT.md) — validation against observed rainfall, blend weight re-tuning, and badge calibration are identified but not yet completed.
-
-The divergence threshold and blend weights are transparent heuristics, not calibrated rainfall skill scores. Ensemble ranges show spread among model members, not guaranteed confidence intervals. A 2026 study by Zhang and Engelke tested GraphCast, Pangu-Weather, and FuXi on heat, cold, and wind extremes; it tested neither AIFS nor precipitation. The [limitations panel](components/LimitationsPanel.tsx) explains this on the forecast page.
+Observed-rainfall validation, blend retuning, and badge calibration remain future work. See the [audit](AUDIT_REPORT.md) for methods, checks, and remaining limitations; [architecture](ARCHITECTURE.md) documents the design.
